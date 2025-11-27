@@ -1,0 +1,5 @@
+{
+  "name": "MONARCH",
+  "description": "A modular cost analysis tool for AI products to calculate unit economics and compare scenarios.",
+  "requestFramePermissions": []
+}
