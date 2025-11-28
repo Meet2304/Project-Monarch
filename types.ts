@@ -12,17 +12,9 @@ export interface Component {
   costType: CostType;
   quantity: number;
   pricePerUnit: number;
-  unitDenominator?: number; // e.g. "1" for normal, "1000000" for tokens
   unitMeasurement?: string; // e.g. "Tokens", "GB", "Hours"
   recurrence?: RecurrencePeriod;
-  customFields?: CustomField[]; 
-}
-
-export interface CustomField {
-  id: string;
-  key: string;
-  value: string;
-  type: 'text' | 'number' | 'date' | 'select';
+  customFields?: { key: string; value: string }; // Optional advanced field
 }
 
 export interface Scenario {
@@ -46,7 +38,6 @@ export interface Project {
   id: string;
   name: string;
   description: string;
-  lastUpdated: number;
-  currencySymbol?: string;
+  lastUpdated: number; // timestamp
   scenarios: Scenario[];
 }

@@ -1,27 +1,18 @@
 import React, { useMemo, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import { Scenario, AnalysisResult, CostType } from '../types';
-import { CARD_STYLE, HELP_TEXT } from '../constants';
+import { CARD_STYLE } from '../constants';
 import { analyzeEconomics } from '../services/geminiService';
 import { Loader2, ArrowRight } from 'lucide-react';
-import Tooltip from './Tooltip';
+import Tooltip from './Tooltip'; // Custom tooltip for titles
 
 interface Props {
   scenario: Scenario;
-  currencySymbol: string;
 }
 
 const COLORS = ['#000000', '#404040', '#737373', '#a3a3a3', '#d4d4d4', '#e5e5e5'];
 
-const formatCurrency = (val: number, symbol: string) => {
-  if (val === 0) return `${symbol}0.00`;
-  const absVal = Math.abs(val);
-  if (absVal < 0.01) return `${symbol}${val.toFixed(6)}`;
-  if (absVal < 1) return `${symbol}${val.toFixed(4)}`;
-  return `${symbol}${val.toFixed(2)}`;
-};
-
-const Dashboard: React.FC<Props> = ({ scenario, currencySymbol }) => {
+const Dashboard: React.FC<Props> = ({ scenario }) => {
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [isLoadingAi, setIsLoadingAi] = useState(false);
 
@@ -31,16 +22,18 @@ const Dashboard: React.FC<Props> = ({ scenario, currencySymbol }) => {
       let cost = 0;
 
       if (comp.costType === CostType.UNIT_BASED) {
-        // Price per Denom * Qty
-        const denom = comp.unitDenominator || 1;
-        cost = (comp.pricePerUnit / denom) * comp.quantity;
+        cost = comp.quantity * comp.pricePerUnit;
       } else if (comp.costType === CostType.FIXED) {
+        // Normalize to Monthly
         if (comp.recurrence === 'Yearly') {
           cost = comp.pricePerUnit / 12;
         } else {
           cost = comp.pricePerUnit;
         }
       } else if (comp.costType === CostType.ONE_TIME) {
+        // For unit economics, usually amortized. Let's show full cost but maybe separate visually?
+        // For simplicity in this app, we add it to the total "Unit load" if user wants to see strict cashflow impact.
+        // Or we can divide by 12 (amortize 1 year). Let's do raw cost for now as it's cleaner.
         cost = comp.pricePerUnit;
       }
 
@@ -76,13 +69,13 @@ const Dashboard: React.FC<Props> = ({ scenario, currencySymbol }) => {
       <header className="mb-6 border-b border-black pb-4">
         <h2 className="text-lg font-bold uppercase tracking-wider text-black mb-1 flex items-center">
           Analysis
-          <Tooltip text={HELP_TEXT.DASHBOARD_TITLE} />
+          <Tooltip text="Normalized Monthly Cost Analysis" />
         </h2>
         <p className="text-xs text-gray-500 mb-4">Real-time cost breakdown (Monthly View).</p>
         
         <div className="flex items-baseline gap-2">
            <span className="text-4xl font-black text-black tracking-tighter">
-            {formatCurrency(analysis.totalCost, currencySymbol)}
+            ${analysis.totalCost.toFixed(4)}
           </span>
           <span className="text-gray-500 font-medium text-xs">/ month</span>
         </div>
@@ -117,7 +110,7 @@ const Dashboard: React.FC<Props> = ({ scenario, currencySymbol }) => {
                       ))}
                     </Pie>
                     <RechartsTooltip 
-                      formatter={(value: number) => formatCurrency(value, currencySymbol)}
+                      formatter={(value: number) => `$${value.toFixed(4)}`}
                       contentStyle={{ backgroundColor: '#ffffff', borderColor: '#000000', borderRadius: '0px', color: '#000000', border: '1px solid black' }}
                       itemStyle={{ color: '#000000' }}
                     />
@@ -140,7 +133,7 @@ const Dashboard: React.FC<Props> = ({ scenario, currencySymbol }) => {
                         <div className="w-2 h-2 rounded-none border border-black shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
                         <span className="text-black font-medium truncate" title={item.name}>{item.name}</span>
                      </div>
-                     <span className="font-mono text-black">{formatCurrency(item.cost, currencySymbol)}</span>
+                     <span className="font-mono text-black">${item.cost.toFixed(2)}</span>
                   </div>
                 ))}
               </div>
@@ -151,9 +144,7 @@ const Dashboard: React.FC<Props> = ({ scenario, currencySymbol }) => {
         {/* AI Analysis Section */}
         <div className="flex flex-col border border-black p-0 shrink-0">
           <div className="bg-black text-white p-3 flex justify-between items-center">
-             <h3 className="text-xs font-bold uppercase flex items-center">
-                Gemini Advisor <Tooltip text={HELP_TEXT.GEMINI_ADVISOR} />
-             </h3>
+             <h3 className="text-xs font-bold uppercase">Gemini Advisor</h3>
              <button
                onClick={handleRunAi}
                disabled={isLoadingAi || !hasData}

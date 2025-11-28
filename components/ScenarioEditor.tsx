@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Scenario, Component, CostType, RecurrencePeriod } from '../types';
 import { CARD_STYLE, INPUT_STYLE, BUTTON_PRIMARY, BUTTON_SECONDARY, COST_TYPE_OPTIONS, RECURRENCE_OPTIONS, HELP_TEXT } from '../constants';
-import { Plus, Trash2, ChevronDown, ChevronUp, X, Save, FileText, Copy } from 'lucide-react';
+import { Plus, Trash2, ChevronDown, ChevronUp, X, Save } from 'lucide-react';
 import Tooltip from './Tooltip';
 
 interface Props {
@@ -10,9 +10,7 @@ interface Props {
   allScenarios: Scenario[];
   onChangeScenario: (id: string) => void;
   onAddScenario: () => void;
-  onDuplicateScenario: (id: string) => void;
   onDeleteScenario: (id: string) => void;
-  currencySymbol: string;
 }
 
 const ScenarioEditor: React.FC<Props> = ({ 
@@ -21,23 +19,24 @@ const ScenarioEditor: React.FC<Props> = ({
   allScenarios, 
   onChangeScenario,
   onAddScenario,
-  onDuplicateScenario,
-  onDeleteScenario,
-  currencySymbol
+  onDeleteScenario
 }) => {
   const [isAddingComponent, setIsAddingComponent] = useState(false);
   const listEndRef = useRef<HTMLDivElement>(null);
 
+  // Updates for Scenario Metadata
   const updateMeta = (field: keyof Scenario, value: string) => {
     onUpdateScenario({ ...scenario, [field]: value });
   };
 
+  // Component Management
   const handleAddComponent = (newComponent: Component) => {
     onUpdateScenario({
       ...scenario,
       components: [...scenario.components, newComponent]
     });
     setIsAddingComponent(false);
+    // Scroll to bottom after adding
     setTimeout(() => listEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
   };
 
@@ -56,93 +55,61 @@ const ScenarioEditor: React.FC<Props> = ({
   };
 
   return (
-    <div className="flex flex-col h-full gap-0">
-      
-      {/* Browser-like Tabs */}
-      <div className="flex items-end gap-1 overflow-x-auto custom-scrollbar pb-0 shrink-0 select-none">
-        {allScenarios.map(s => {
-          const isActive = s.id === scenario.id;
-          return (
-            <div 
-              key={s.id}
-              onClick={() => onChangeScenario(s.id)}
-              className={`
-                group relative min-w-[140px] max-w-[200px] h-9 px-3 flex items-center justify-between cursor-pointer border-t border-r border-l border-black transition-colors
-                ${isActive ? 'bg-white -mb-px pb-1 z-10 font-bold' : 'bg-gray-100 hover:bg-gray-200 text-gray-500'}
-              `}
-            >
-              <div className="flex items-center gap-2 truncate pr-2">
-                 <FileText size={12} className={isActive ? "text-black" : "text-gray-400"} />
-                 <span className={`text-xs uppercase truncate ${isActive ? 'text-black' : ''}`}>
-                   {s.name}
-                 </span>
-              </div>
-              
-              <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={(e) => { e.stopPropagation(); onDuplicateScenario(s.id); }}
-                  className="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-black hover:bg-gray-200 rounded-sm"
-                  title="Duplicate Scenario"
-                >
-                  <Copy size={10} />
-                </button>
-                {allScenarios.length > 1 && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); onDeleteScenario(s.id); }}
-                    className="w-5 h-5 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-sm"
-                    title="Delete Scenario"
-                  >
-                    <X size={10} />
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-        
-        <button 
-          onClick={onAddScenario}
-          className="h-8 w-8 flex items-center justify-center border border-black bg-white hover:bg-gray-100 ml-1 mb-1 transition-colors"
-          title="Add New Scenario"
-        >
-          <Plus size={14} />
-        </button>
-        
-        <div className="ml-2 mb-2">
-          <Tooltip text={HELP_TEXT.SCENARIO_TABS} />
-        </div>
-      </div>
-
-      <div className={`${CARD_STYLE} flex-1 flex flex-col min-h-0 border-t-black z-0`}>
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4 border-b border-gray-100 pb-6">
+    <div className="flex flex-col h-full gap-6">
+      {/* Scenario Selector & Metadata */}
+      <div className={CARD_STYLE}>
+        <div className="flex justify-between items-start mb-6 border-b border-black pb-4">
            <div>
-            <label className="text-[10px] font-bold uppercase mb-1 flex items-center text-gray-500">
-              Scenario Name <Tooltip text={HELP_TEXT.SCENARIO_NAME} />
-            </label>
+             <h2 className="text-lg font-bold uppercase tracking-wider text-black flex items-center">
+               Scenario Configuration
+               <Tooltip text={HELP_TEXT.SCENARIO} />
+             </h2>
+             <p className="text-xs text-gray-500 mt-1">Select or define the context.</p>
+           </div>
+           <div className="flex gap-2">
+             <select 
+               className={`${INPUT_STYLE} min-w-[150px]`}
+               value={scenario.id}
+               onChange={(e) => onChangeScenario(e.target.value)}
+             >
+               {allScenarios.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+             </select>
+             <button onClick={onAddScenario} className={`${BUTTON_SECONDARY} px-2`} title="New Scenario">
+               <Plus size={16} />
+             </button>
+             {allScenarios.length > 1 && (
+               <button onClick={() => onDeleteScenario(scenario.id)} className={`${BUTTON_SECONDARY} px-2 text-red-600 border-red-200 hover:border-red-600 hover:bg-red-50`}>
+                 <Trash2 size={16} />
+               </button>
+             )}
+           </div>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs font-bold uppercase mb-1 block">Scenario Name</label>
             <input 
-              className={`w-full ${INPUT_STYLE} font-bold`} 
+              className={`w-full ${INPUT_STYLE}`} 
               value={scenario.name}
               onChange={(e) => updateMeta('name', e.target.value)}
             />
           </div>
           <div>
-            <label className="text-[10px] font-bold uppercase mb-1 flex items-center text-gray-500">
-              Description <Tooltip text={HELP_TEXT.SCENARIO_DESC} />
-            </label>
-            <input
-              className={`w-full ${INPUT_STYLE}`} 
+            <label className="text-xs font-bold uppercase mb-1 block">Description</label>
+            <textarea 
+              className={`w-full ${INPUT_STYLE} h-20 resize-none`} 
               value={scenario.description}
               onChange={(e) => updateMeta('description', e.target.value)}
-              placeholder="Short description of this model..."
+              placeholder="Describe the conditions of this scenario..."
             />
           </div>
         </div>
+      </div>
 
-        <div className="flex justify-between items-center mb-6 shrink-0">
-          <h2 className="text-lg font-bold uppercase tracking-wider text-black flex items-center">
-            Components
-            <Tooltip text="The individual line items that make up your total cost." />
-          </h2>
+      {/* Components Section */}
+      <div className={`${CARD_STYLE} flex-1 flex flex-col min-h-0`}>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-lg font-bold uppercase tracking-wider text-black">Components</h2>
           {!isAddingComponent && (
             <button onClick={() => setIsAddingComponent(true)} className={BUTTON_PRIMARY}>
               <Plus size={14} className="mr-2 inline" /> Add Component
@@ -151,12 +118,13 @@ const ScenarioEditor: React.FC<Props> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
+          
+          {/* Add Component Form */}
           {isAddingComponent && (
             <div className="border-2 border-black p-6 bg-gray-50 mb-6 shadow-xl animate-in fade-in slide-in-from-top-4">
               <AddComponentForm 
                 onSave={handleAddComponent} 
-                onCancel={() => setIsAddingComponent(false)}
-                currencySymbol={currencySymbol}
+                onCancel={() => setIsAddingComponent(false)} 
               />
             </div>
           )}
@@ -173,7 +141,6 @@ const ScenarioEditor: React.FC<Props> = ({
               component={comp} 
               onUpdate={(updates) => updateComponent(comp.id, updates)}
               onRemove={() => removeComponent(comp.id)}
-              currencySymbol={currencySymbol}
             />
           ))}
           <div ref={listEndRef} />
@@ -183,19 +150,20 @@ const ScenarioEditor: React.FC<Props> = ({
   );
 };
 
+// --- Sub-Component: Add Form ---
 const AddComponentForm: React.FC<{
   onSave: (c: Component) => void;
   onCancel: () => void;
-  currencySymbol: string;
-}> = ({ onSave, onCancel, currencySymbol }) => {
+}> = ({ onSave, onCancel }) => {
   const [name, setName] = useState('');
   const [costType, setCostType] = useState<CostType>(CostType.UNIT_BASED);
   
+  // Fields for Unit Based
   const [quantity, setQuantity] = useState(1);
   const [pricePerUnit, setPricePerUnit] = useState(0);
-  const [unitDenominator, setUnitDenominator] = useState(1);
   const [unitMeasurement, setUnitMeasurement] = useState('');
 
+  // Fields for Fixed
   const [recurrence, setRecurrence] = useState<RecurrencePeriod>('Monthly');
 
   const handleSave = () => {
@@ -207,7 +175,6 @@ const AddComponentForm: React.FC<{
       costType,
       quantity: quantity,
       pricePerUnit: pricePerUnit,
-      unitDenominator: costType === CostType.UNIT_BASED ? unitDenominator : undefined,
       unitMeasurement: costType === CostType.UNIT_BASED ? unitMeasurement : undefined,
       recurrence: costType === CostType.FIXED ? recurrence : undefined
     };
@@ -225,10 +192,9 @@ const AddComponentForm: React.FC<{
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Common Fields */}
         <div className="md:col-span-1">
-          <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 flex items-center">
-             Component Name <Tooltip text={HELP_TEXT.COMPONENT_NAME} />
-          </label>
+          <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Component Name</label>
           <input 
             className={`w-full ${INPUT_STYLE}`}
             placeholder="e.g. GPT-4 API"
@@ -251,35 +217,9 @@ const AddComponentForm: React.FC<{
           </select>
         </div>
 
+        {/* --- Unit Based Options --- */}
         {costType === CostType.UNIT_BASED && (
           <>
-             <div className="md:col-span-2 grid grid-cols-2 gap-4">
-               <div>
-                  <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 flex items-center">
-                    Price ({currencySymbol}) <Tooltip text={HELP_TEXT.PRICE} />
-                  </label>
-                  <input 
-                    type="number" step="any"
-                    className={`w-full ${INPUT_STYLE}`}
-                    value={pricePerUnit || ''}
-                    placeholder="0.0001"
-                    onChange={(e) => setPricePerUnit(parseFloat(e.target.value))}
-                  />
-               </div>
-               <div>
-                 <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 flex items-center">
-                    Per N Units <Tooltip text={HELP_TEXT.UNIT_DENOMINATOR} />
-                 </label>
-                 <input 
-                    type="number" step="1"
-                    className={`w-full ${INPUT_STYLE}`}
-                    value={unitDenominator || ''}
-                    placeholder="1"
-                    onChange={(e) => setUnitDenominator(parseFloat(e.target.value))}
-                  />
-               </div>
-             </div>
-             
              <div className="md:col-span-1">
                <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 flex items-center">
                  Unit Name <Tooltip text={HELP_TEXT.UNIT_MEASURE} />
@@ -291,14 +231,27 @@ const AddComponentForm: React.FC<{
                  onChange={(e) => setUnitMeasurement(e.target.value)}
                />
              </div>
-             
+             <div className="md:col-span-1">
+                <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 flex items-center">
+                  Price Per Unit <Tooltip text={HELP_TEXT.PRICE} />
+                </label>
+                <div className="relative">
+                  <span className="absolute left-2 top-2 text-gray-500 text-sm">$</span>
+                  <input 
+                    type="number"
+                    className={`w-full ${INPUT_STYLE} pl-5`}
+                    value={pricePerUnit || ''}
+                    placeholder="0.00"
+                    onChange={(e) => setPricePerUnit(parseFloat(e.target.value))}
+                  />
+                </div>
+             </div>
              <div className="md:col-span-1">
                 <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 flex items-center">
                   Units per Customer/Mo <Tooltip text={HELP_TEXT.QUANTITY} />
                 </label>
                 <input 
                   type="number"
-                  step="any"
                   className={`w-full ${INPUT_STYLE}`}
                   value={quantity}
                   onChange={(e) => setQuantity(parseFloat(e.target.value))}
@@ -307,6 +260,7 @@ const AddComponentForm: React.FC<{
           </>
         )}
 
+        {/* --- Fixed Recurring Options --- */}
         {costType === CostType.FIXED && (
           <>
              <div className="md:col-span-1">
@@ -314,10 +268,10 @@ const AddComponentForm: React.FC<{
                  Cost Amount <Tooltip text={HELP_TEXT.PRICE} />
                </label>
                <div className="relative">
-                 <span className="absolute left-2 top-2 text-gray-500 text-sm">{currencySymbol}</span>
+                 <span className="absolute left-2 top-2 text-gray-500 text-sm">$</span>
                  <input 
-                   type="number" step="any"
-                   className={`w-full ${INPUT_STYLE} pl-6`}
+                   type="number"
+                   className={`w-full ${INPUT_STYLE} pl-5`}
                    value={pricePerUnit || ''}
                    placeholder="0.00"
                    onChange={(e) => setPricePerUnit(parseFloat(e.target.value))}
@@ -336,17 +290,19 @@ const AddComponentForm: React.FC<{
                   {RECURRENCE_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
              </div>
+             {/* Hidden Quantity logic for Fixed - defaults to 1 internally for math */}
           </>
         )}
 
+        {/* --- One Time Options --- */}
         {costType === CostType.ONE_TIME && (
            <div className="md:col-span-1">
              <label className="text-[10px] font-bold uppercase text-gray-500 mb-1 block">Cost Amount</label>
              <div className="relative">
-                 <span className="absolute left-2 top-2 text-gray-500 text-sm">{currencySymbol}</span>
+                 <span className="absolute left-2 top-2 text-gray-500 text-sm">$</span>
                  <input 
-                   type="number" step="any"
-                   className={`w-full ${INPUT_STYLE} pl-6`}
+                   type="number"
+                   className={`w-full ${INPUT_STYLE} pl-5`}
                    value={pricePerUnit || ''}
                    placeholder="0.00"
                    onChange={(e) => setPricePerUnit(parseFloat(e.target.value))}
@@ -366,33 +322,30 @@ const AddComponentForm: React.FC<{
   );
 };
 
+
+// --- Sub-Component: Component Row ---
 const ComponentRow: React.FC<{
   component: Component;
   onUpdate: (c: Partial<Component>) => void;
   onRemove: () => void;
-  currencySymbol: string;
-}> = ({ component, onUpdate, onRemove, currencySymbol }) => {
+}> = ({ component, onUpdate, onRemove }) => {
   const [showAdvanced, setShowAdvanced] = useState(!!component.customFields);
 
   const toggleAdvanced = () => {
     setShowAdvanced(!showAdvanced);
   };
 
-  const calculateCost = () => {
-    if (component.costType === CostType.UNIT_BASED) {
-      const denom = component.unitDenominator || 1;
-      return (component.pricePerUnit / denom) * component.quantity;
-    }
-    return component.pricePerUnit; // Fixed or One Time raw amount
+  const handleCustomFieldChange = (key: string, value: string) => {
+    onUpdate({ customFields: { key, value } });
   };
 
   return (
     <div className="border border-black p-4 bg-white transition-all hover:shadow-lg group">
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+        
+        {/* Name */}
         <div className="md:col-span-3">
-          <label className="text-[10px] font-bold uppercase text-gray-400 block mb-1">
-             Name <Tooltip text={HELP_TEXT.COMPONENT_NAME} />
-          </label>
+          <label className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Name</label>
           <input 
             className={`w-full ${INPUT_STYLE}`}
             value={component.name}
@@ -400,10 +353,9 @@ const ComponentRow: React.FC<{
           />
         </div>
 
-        <div className="md:col-span-2">
-          <label className="text-[10px] font-bold uppercase text-gray-400 block mb-1">
-             Type <Tooltip text={HELP_TEXT.COST_TYPE} />
-          </label>
+        {/* Type */}
+        <div className="md:col-span-3">
+          <label className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Type</label>
           <select 
             className={`w-full ${INPUT_STYLE}`}
             value={component.costType}
@@ -415,46 +367,31 @@ const ComponentRow: React.FC<{
           </select>
         </div>
 
+        {/* Dynamic Fields Display */}
         {component.costType === CostType.UNIT_BASED && (
           <>
              <div className="md:col-span-2">
-                <label className="text-[10px] font-bold uppercase text-gray-400 block mb-1">
-                   Price / N Units <Tooltip text={HELP_TEXT.PRICE} />
-                </label>
-                <div className="flex gap-1">
-                  <input 
-                    type="number" step="any"
-                    className={`w-1/2 ${INPUT_STYLE}`}
-                    value={component.pricePerUnit}
-                    onChange={(e) => onUpdate({ pricePerUnit: parseFloat(e.target.value) })}
-                    placeholder="$"
-                  />
-                  <input 
-                    type="number" step="1"
-                    className={`w-1/2 ${INPUT_STYLE}`}
-                    value={component.unitDenominator || 1}
-                    onChange={(e) => onUpdate({ unitDenominator: parseFloat(e.target.value) })}
-                    placeholder="/"
-                  />
-                </div>
-             </div>
-             <div className="md:col-span-2">
-                <label className="text-[10px] font-bold uppercase text-gray-400 block mb-1">
-                   Unit Name <Tooltip text={HELP_TEXT.UNIT_MEASURE} />
-                </label>
+                <label className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Unit</label>
                 <input 
                   className={`w-full ${INPUT_STYLE}`}
                   value={component.unitMeasurement || ''}
                   onChange={(e) => onUpdate({ unitMeasurement: e.target.value })}
-                  placeholder="e.g. Tokens"
+                  placeholder="Unit"
                 />
              </div>
              <div className="md:col-span-2">
-                <label className="text-[10px] font-bold uppercase text-gray-400 block mb-1">
-                   Mo. Qty <Tooltip text={HELP_TEXT.QUANTITY} />
-                </label>
+                <label className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Price/Unit</label>
                 <input 
-                  type="number" step="any"
+                  type="number"
+                  className={`w-full ${INPUT_STYLE}`}
+                  value={component.pricePerUnit}
+                  onChange={(e) => onUpdate({ pricePerUnit: parseFloat(e.target.value) })}
+                />
+             </div>
+             <div className="md:col-span-1">
+                <label className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Qty</label>
+                <input 
+                  type="number"
                   className={`w-full ${INPUT_STYLE} p-1 text-center`}
                   value={component.quantity}
                   onChange={(e) => onUpdate({ quantity: parseFloat(e.target.value) })}
@@ -465,21 +402,17 @@ const ComponentRow: React.FC<{
 
         {component.costType === CostType.FIXED && (
           <>
-             <div className="md:col-span-3">
-               <label className="text-[10px] font-bold uppercase text-gray-400 block mb-1">
-                  Amount <Tooltip text={HELP_TEXT.PRICE} />
-               </label>
+             <div className="md:col-span-2">
+               <label className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Amount</label>
                <input 
-                 type="number" step="any"
+                 type="number"
                  className={`w-full ${INPUT_STYLE}`}
                  value={component.pricePerUnit}
                  onChange={(e) => onUpdate({ pricePerUnit: parseFloat(e.target.value) })}
                />
              </div>
              <div className="md:col-span-3">
-               <label className="text-[10px] font-bold uppercase text-gray-400 block mb-1">
-                  Recurrence <Tooltip text={HELP_TEXT.RECURRENCE} />
-               </label>
+               <label className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Recurrence</label>
                <select 
                   className={`w-full ${INPUT_STYLE}`}
                   value={component.recurrence || 'Monthly'}
@@ -492,12 +425,10 @@ const ComponentRow: React.FC<{
         )}
 
          {component.costType === CostType.ONE_TIME && (
-             <div className="md:col-span-3">
-               <label className="text-[10px] font-bold uppercase text-gray-400 block mb-1">
-                  Amount <Tooltip text={HELP_TEXT.PRICE} />
-               </label>
+             <div className="md:col-span-2">
+               <label className="text-[10px] font-bold uppercase text-gray-400 block mb-1">Amount</label>
                <input 
-                 type="number" step="any"
+                 type="number"
                  className={`w-full ${INPUT_STYLE}`}
                  value={component.pricePerUnit}
                  onChange={(e) => onUpdate({ pricePerUnit: parseFloat(e.target.value) })}
@@ -512,12 +443,13 @@ const ComponentRow: React.FC<{
         </div>
       </div>
 
+      {/* Footer / Advanced */}
       <div className="mt-3 flex justify-between items-center border-t border-gray-100 pt-2">
          <div className="text-xs font-mono text-black flex gap-2">
            {component.costType === CostType.FIXED ? (
-              <span>{component.recurrence} Cost: <span className="font-bold">{currencySymbol}{component.pricePerUnit}</span></span>
+              <span>{component.recurrence} Cost: <span className="font-bold">${component.pricePerUnit.toFixed(4)}</span></span>
            ) : (
-              <span>Calculated: <span className="font-bold">{currencySymbol}{calculateCost().toFixed(6).replace(/\.?0+$/, '')}</span></span>
+              <span>Calculated: <span className="font-bold">${(component.quantity * component.pricePerUnit).toFixed(4)}</span></span>
            )}
          </div>
          
@@ -531,7 +463,21 @@ const ComponentRow: React.FC<{
 
       {showAdvanced && (
         <div className="mt-2 bg-gray-50 p-3 border border-gray-200">
-           <p className="text-[10px] text-gray-400 italic">Custom fields feature not fully implemented in this minimalist demo.</p>
+          <p className="text-[10px] font-bold uppercase mb-2">Custom Field</p>
+          <div className="flex gap-2">
+            <input 
+              placeholder="Field Name" 
+              className={`flex-1 ${INPUT_STYLE}`}
+              value={component.customFields?.key || ''}
+              onChange={(e) => handleCustomFieldChange(e.target.value, component.customFields?.value || '')}
+            />
+            <input 
+              placeholder="Value" 
+              className={`flex-1 ${INPUT_STYLE}`}
+              value={component.customFields?.value || ''}
+              onChange={(e) => handleCustomFieldChange(component.customFields?.key || '', e.target.value)}
+            />
+          </div>
         </div>
       )}
     </div>
