@@ -1,5 +1,5 @@
 <p align = 'center'>
-  <img src = 'https://github.com/Meet2304/Project-Monarch/blob/main/Project-Monarch-Header_v0.1.png'>
+  <img src = 'https://github.com/Meet2304/Project-Monarch/blob/main/Assets/Project-Monarch-Header_v0.1.png'>
 </p>
 
 <h1 align="center">Monarch</h1>
